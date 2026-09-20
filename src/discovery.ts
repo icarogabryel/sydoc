@@ -52,3 +52,25 @@ export async function findSydocProjects(
 
   return projects;
 }
+
+export async function findSydocProjectForFile(
+  file: vscode.Uri,
+): Promise<SydocProject | undefined> {
+  let directory = vscode.Uri.joinPath(file, '..');
+
+  while (true) {
+    const project = await findSydocProject(directory);
+
+    if (project) {
+      return project;
+    }
+
+    const parent = vscode.Uri.joinPath(directory, '..');
+
+    if (parent.toString() === directory.toString()) {
+      return undefined;
+    }
+
+    directory = parent;
+  }
+}

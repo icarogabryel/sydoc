@@ -1,5 +1,22 @@
 import * as vscode from 'vscode';
-import { findSydocProjects } from './discovery';
+import {
+  findSydocProjectForFile,
+  findSydocProjects,
+} from './discovery';
+import { SydocProject } from './project';
+import { SydocNavigationProvider } from './navigation';
+
+let activeProject: SydocProject | undefined;
+
+async function getSydocProject(
+  document: vscode.TextDocument,
+) {
+  if (document.languageId !== 'markdown') {
+    return undefined;
+  }
+
+  return findSydocProjectForFile(document.uri);
+}
 
 export function activate(context: vscode.ExtensionContext) {
   const openDocumentation = vscode.commands.registerCommand(
@@ -52,7 +69,39 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  context.subscriptions.push(openDocumentation, initializeDocumentation);
+  const activeEditorChanged =
+    vscode.window.onDidChangeActiveTextEditor(
+      async (editor) => {
+        activeProject = undefined;
+
+        if (!editor) {
+          navigation.setProject(undefined);
+          return;
+        }
+
+        activeProject = await getSydocProject(
+          editor.document,
+        );
+
+        navigation.setProject(activeProject);
+      },
+    );
+
+  const navigation =
+    new SydocNavigationProvider();
+
+  const navigationProvider =
+    vscode.window.registerTreeDataProvider(
+      'sydoc.navigation',
+      navigation,
+    );
+
+  context.subscriptions.push(
+    openDocumentation,
+    initializeDocumentation,
+    activeEditorChanged,
+    navigationProvider
+  );
 }
 
 export function deactivate() { }

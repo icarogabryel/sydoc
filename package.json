@@ -9,7 +9,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onWebviewPanel:markdown.preview"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -21,7 +24,24 @@
         "command": "sydoc.initializeDocumentation",
         "title": "Sydoc: Initialize Documentation"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sydoc",
+          "title": "Sydoc",
+          "icon": "resources/sydoc.svg"
+        }
+      ]
+    },
+    "views": {
+      "sydoc": [
+        {
+          "id": "sydoc.navigation",
+          "name": "Documentation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
