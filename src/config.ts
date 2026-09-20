@@ -1,3 +1,3 @@
 export const config = {
-  documentationDirectory: 'docs',
+  configFileName: 'sydoc.yml',
 };
