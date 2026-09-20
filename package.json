@@ -45,7 +45,14 @@
           "name": "On This Page"
         }
       ]
-    }
+    },
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/sydoc-preview.css"
+    ],
+    "markdown.previewScripts": [
+      "./media/sydoc-preview.js"
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

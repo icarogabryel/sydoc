@@ -138,6 +138,10 @@ src/
 └── views/
     ├── navigation.ts
     └── outline.ts
+
+media/
+├── sydoc-preview.css
+└── sydoc-preview.js
 ```
 
 ## projects/project.ts
@@ -297,6 +301,7 @@ The following already works:
 11. `On This Page` displays the heading hierarchy.
 12. Clicking an `On This Page` item reveals the matching line in a visible Markdown source editor.
 13. The active Sydoc project is preserved while the native Markdown Preview has focus.
+14. The extension contributes a markdown-it plugin, Preview stylesheet, and Preview script without changing Preview content yet.
 
 ## Immediate next development task
 
@@ -304,7 +309,6 @@ Create a Preview-only proof of concept for the three-column Sydoc layout.
 
 Scope:
 
-* Register the native Markdown extension points required for a Preview script and styles.
 * Preserve the final Markdown DOM and place it in the center column.
 * Build the right `On This Page` panel from the rendered heading elements.
 * Add independently scrollable left and right panels.

@@ -20,7 +20,11 @@ async function getSydocProject(
   return findSydocProjectForFile(document.uri);
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(
+  context: vscode.ExtensionContext,
+): {
+  extendMarkdownIt(markdownIt: unknown): unknown;
+} {
   const revealHeading = vscode.commands.registerCommand(
     'sydoc.revealHeading',
     (line: number, documentUri?: vscode.Uri) => {
@@ -150,6 +154,12 @@ export function activate(context: vscode.ExtensionContext) {
     navigationProvider,
     outlineProvider,
   );
+
+  return {
+    extendMarkdownIt(markdownIt: unknown): unknown {
+      return markdownIt;
+    },
+  };
 }
 
 export function deactivate() { }

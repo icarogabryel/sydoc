@@ -12,7 +12,7 @@
 
 ## Preview layout
 
-- [ ] Add the native Markdown contribution points for a markdown-it plugin, Preview styles, and Preview script.
+- [x] Add the native Markdown contribution points for a markdown-it plugin, Preview styles, and Preview script.
 - [ ] Build a Preview-only three-column proof of concept.
 - [ ] Preserve `.markdown-body` and move existing rendered Markdown nodes into the center column.
 - [ ] Add independently scrollable Documentation and On This Page side panels.
