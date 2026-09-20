@@ -16,6 +16,10 @@
       {
         "command": "sydoc.openDocumentation",
         "title": "Sydoc: Open Documentation"
+      },
+      {
+        "command": "sydoc.initializeDocumentation",
+        "title": "Sydoc: Initialize Documentation"
       }
     ]
   },

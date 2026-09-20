@@ -22,7 +22,37 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  context.subscriptions.push(openDocumentation);
+  const initializeDocumentation = vscode.commands.registerCommand(
+    'sydoc.initializeDocumentation',
+    async () => {
+      const folder = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Initialize Sydoc',
+      });
+
+      if (!folder || folder.length === 0) {
+        return;
+      }
+
+      const configFile = vscode.Uri.joinPath(
+        folder[0],
+        'sydoc.yml',
+      );
+
+      await vscode.workspace.fs.writeFile(
+        configFile,
+        Buffer.from(''),
+      );
+
+      vscode.window.showInformationMessage(
+        'Sydoc: Project initialized.',
+      );
+    },
+  );
+
+  context.subscriptions.push(openDocumentation, initializeDocumentation);
 }
 
 export function deactivate() { }
