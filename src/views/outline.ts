@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import {
   SydocHeading,
-} from './headings';
+} from '../markdown/headings';
 
 export class SydocOutlineProvider
   implements vscode.TreeDataProvider<SydocHeading> {
   private headings: SydocHeading[] = [];
+  private documentUri: vscode.Uri | undefined;
 
   private readonly onDidChangeTreeDataEmitter =
     new vscode.EventEmitter<void>();
@@ -13,8 +14,12 @@ export class SydocOutlineProvider
   readonly onDidChangeTreeData =
     this.onDidChangeTreeDataEmitter.event;
 
-  setHeadings(headings: SydocHeading[]): void {
+  setHeadings(
+    headings: SydocHeading[],
+    documentUri?: vscode.Uri,
+  ): void {
     this.headings = headings;
+    this.documentUri = documentUri;
     this.onDidChangeTreeDataEmitter.fire();
   }
 
@@ -29,6 +34,11 @@ export class SydocOutlineProvider
     );
 
     item.description = `H${heading.level}`;
+    item.command = {
+      command: 'sydoc.revealHeading',
+      title: 'Go to Heading',
+      arguments: [heading.line, this.documentUri],
+    };
 
     return item;
   }

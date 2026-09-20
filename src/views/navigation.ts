@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SydocProject } from './project';
+import { SydocProject } from '../projects/project';
 
 export class SydocNavigationProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {

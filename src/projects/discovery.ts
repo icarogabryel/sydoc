@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { config } from './config';
+import { config } from '../core/config';
 import { SydocProject } from './project';
 
 export async function findSydocProject(

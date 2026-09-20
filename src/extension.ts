@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import {
   findSydocProjectForFile,
   findSydocProjects,
-} from './discovery';
-import { SydocProject } from './project';
-import { SydocNavigationProvider } from './navigation';
-import { SydocOutlineProvider } from './outline';
-import { findHeadings } from './headings';
+} from './projects/discovery';
+import { SydocProject } from './projects/project';
+import { SydocNavigationProvider } from './views/navigation';
+import { SydocOutlineProvider } from './views/outline';
+import { findHeadings } from './markdown/headings';
 
 let activeProject: SydocProject | undefined;
 
@@ -21,6 +21,31 @@ async function getSydocProject(
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  const revealHeading = vscode.commands.registerCommand(
+    'sydoc.revealHeading',
+    (line: number, documentUri?: vscode.Uri) => {
+      const editor = documentUri
+        ? vscode.window.visibleTextEditors.find(
+          (visibleEditor) => visibleEditor.document.uri.toString()
+            === documentUri.toString(),
+        )
+        : vscode.window.activeTextEditor;
+
+      if (!editor || editor.document.languageId !== 'markdown') {
+        return;
+      }
+
+      const position = new vscode.Position(line, 0);
+      const range = new vscode.Range(position, position);
+
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(
+        range,
+        vscode.TextEditorRevealType.AtTop,
+      );
+    },
+  );
+
   const openDocumentation = vscode.commands.registerCommand(
     'sydoc.openDocumentation',
     async () => {
@@ -74,13 +99,11 @@ export function activate(context: vscode.ExtensionContext) {
   const activeEditorChanged =
     vscode.window.onDidChangeActiveTextEditor(
       async (editor) => {
-        activeProject = undefined;
-
         if (!editor) {
-          navigation.setProject(undefined);
           return;
         }
 
+        activeProject = undefined;
         activeProject = await getSydocProject(
           editor.document,
         );
@@ -95,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
             editor.document,
           );
 
-          outline.setHeadings(headings);
+          outline.setHeadings(headings, editor.document.uri);
         } else {
           outline.setHeadings([]);
         }
@@ -120,6 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
   context.subscriptions.push(
+    revealHeading,
     openDocumentation,
     initializeDocumentation,
     activeEditorChanged,

@@ -56,13 +56,13 @@ Sydoc must use the **native VS Code Markdown Preview**.
 
 Do NOT create a custom Webview Markdown renderer.
 
-The desired final layout is conceptually:
+The desired final Preview layout is conceptually:
 
 ```text
 ┌──────────────────┬──────────────────────────────┬──────────────────┐
-│ Sydoc navigation │                              │ Nesta página     │
+│ Documentation    │                              │ On This Page     │
 │                  │       Native Markdown        │                  │
-│ Documentation    │          Preview             │ H1               │
+│ docs/            │          Preview             │ H1               │
 │ ├─ file.md       │                              │ ├─ H2            │
 │ ├─ folder/       │                              │ └─ H2            │
 │ └─ ...           │                              │                  │
@@ -73,15 +73,24 @@ Behavior:
 
 * Opening a Markdown in the normal editable text editor must remain normal VS Code behavior.
 * Sydoc's special layout should only be activated for the Markdown **Preview**, not merely because a `.md` file was opened.
-* The center must be the native VS Code Markdown Preview.
-* Left side: Sydoc documentation navigation.
-* Right side: heading tree for the current page (`Nesta página`).
-* When another Sydoc Markdown is opened in the Preview, the existing layout should be reused and updated.
-* When leaving the Sydoc Preview for a normal file, the user's previous editor layout should eventually be restored.
-* The whole VS Code window should not be resized; only the editor area should be organized.
-* Exact editor-group/layout APIs still need to be verified before implementation.
+* The layout is rendered **inside the native Markdown Preview**, not as VS Code editor groups or external View containers.
+* Left side: prebuilt Sydoc documentation navigation for the current project.
+* Center: the normal native Markdown Preview content.
+* Right side: heading tree for the current page (`On This Page`).
+* Each side navigation has independent vertical scrolling.
+* When a link to another Markdown file is clicked, the native Preview should reuse itself for the new document. Sydoc must rebuild the layout and heading tree for that document.
+* Markdown links should rely on the default `markdown.preview.openMarkdownLinks: "inPreview"` behavior.
+* The whole VS Code window and editor-group layout must not be resized or reorganized.
 
-VS Code does not expose the native Markdown renderer as a generic component that can simply be embedded inside a custom Webview. Therefore the native Preview must remain a native VS Code editor/webview, with Sydoc UI arranged around it.
+Implement the Preview layout with VS Code's native Markdown extension points:
+
+* `markdown.markdownItPlugins` injects the prebuilt documentation navigation or data needed to render it.
+* `markdown.previewStyles` provides the three-column layout and independent side-panel scrolling.
+* `markdown.previewScripts` reorganizes the final rendered DOM, builds `On This Page` from rendered headings, and updates the layout after Preview content changes.
+* Preserve the native `.markdown-body` root and move existing rendered nodes into the center column. Do not recreate, sanitize, or replace the Markdown HTML, so that extensions such as task lists, Mermaid, and LaTeX continue to work.
+* Preview scripts must be idempotent because VS Code updates Preview content as Markdown changes.
+
+VS Code does not expose the native Markdown renderer as a generic component that can be embedded in a custom Webview. Sydoc must therefore extend the native Preview in place and must not create a custom Markdown renderer.
 
 ## Current package configuration
 
@@ -89,7 +98,6 @@ The extension currently has these commands:
 
 * `sydoc.openDocumentation`
 * `sydoc.initializeDocumentation`
-* `sydoc.createDocument`
 
 The extension currently activates for:
 
@@ -105,7 +113,9 @@ The exact activation behavior for the Preview still needs to be verified during 
 The extension also has a Sydoc Activity Bar container and two views:
 
 * `sydoc.navigation` — Documentation
-* `sydoc.outline` — Nesta página
+* `sydoc.outline` — On This Page
+
+These Tree Views currently support the editable Markdown workflow. They are not the final Sydoc Preview layout; the final navigation is rendered inside the native Preview.
 
 The container uses:
 
@@ -117,16 +127,20 @@ resources/sydoc.svg
 
 ```text
 src/
-├── config.ts
-├── discovery.ts
+├── core/
+│   └── config.ts
 ├── extension.ts
-├── headings.ts
-├── navigation.ts
-├── outline.ts
-└── project.ts
+├── markdown/
+│   └── headings.ts
+├── projects/
+│   ├── discovery.ts
+│   └── project.ts
+└── views/
+    ├── navigation.ts
+    └── outline.ts
 ```
 
-## project.ts
+## projects/project.ts
 
 Defines:
 
@@ -141,7 +155,7 @@ export interface SydocProject {
 
 `configFile` is the actual `sydoc.yml` URI.
 
-## config.ts
+## core/config.ts
 
 Contains:
 
@@ -158,7 +172,7 @@ export const config = {
 };
 ```
 
-## Discovery
+## projects/discovery.ts
 
 `discovery.ts` currently provides:
 
@@ -174,7 +188,7 @@ Behavior:
 
 This has already been tested successfully with multiple projects and ignored directories.
 
-## Documentation navigation
+## views/navigation.ts
 
 `navigation.ts` contains `SydocNavigationProvider`.
 
@@ -192,7 +206,7 @@ The current behavior is intentionally based on real files and directories rather
 
 The Documentation tree should represent the Sydoc project to which the currently active Markdown document belongs.
 
-## Current page outline
+## markdown/headings.ts
 
 `headings.ts` defines:
 
@@ -210,29 +224,29 @@ export interface SydocHeading {
 Example:
 
 ```markdown
-# Introdução
-## Instalação
-## Configuração
-### Banco de dados
-## Uso
+# Introduction
+## Installation
+## Configuration
+### Database
+## Usage
 # API
-## Autenticação
+## Authentication
 ```
 
 becomes:
 
 ```text
-Introdução
-├── Instalação
-├── Configuração
-│   └── Banco de dados
-└── Uso
+Introduction
+├── Installation
+├── Configuration
+│   └── Database
+└── Usage
 
 API
-└── Autenticação
+└── Authentication
 ```
 
-`outline.ts` contains `SydocOutlineProvider`, another `TreeDataProvider`.
+`views/outline.ts` contains `SydocOutlineProvider`, another `TreeDataProvider`.
 
 It:
 
@@ -242,7 +256,7 @@ It:
 * expands headings that have children;
 * currently shows the heading level as a description such as `H1`, `H2`, etc.
 
-The Tree View is currently registered as `sydoc.outline` and named `Nesta página`.
+The Tree View is currently registered as `sydoc.outline` and named `On This Page`.
 
 ## Current active-document flow
 
@@ -278,36 +292,36 @@ The following already works:
 6. Sydoc Activity Bar container works.
 7. Documentation Tree View works.
 8. Documentation tree follows the current project's Markdown files.
-9. `Nesta página` Tree View works.
+9. `On This Page` Tree View works.
 10. Markdown headings are parsed hierarchically.
-11. `Nesta página` displays the heading hierarchy.
+11. `On This Page` displays the heading hierarchy.
+12. Clicking an `On This Page` item reveals the matching line in a visible Markdown source editor.
+13. The active Sydoc project is preserved while the native Markdown Preview has focus.
 
 ## Immediate next development task
 
-Make `Nesta página` items navigable.
+Create a Preview-only proof of concept for the three-column Sydoc layout.
 
-Desired eventual behavior:
+Scope:
 
-* clicking a heading should navigate to the corresponding Markdown heading;
-* the current heading model already stores the source line;
-* initially this can navigate the normal editable Markdown editor to that line;
-* later the same heading information should be reused to navigate the native Markdown Preview.
-
-Do not implement the full Preview layout yet.
+* Register the native Markdown extension points required for a Preview script and styles.
+* Preserve the final Markdown DOM and place it in the center column.
+* Build the right `On This Page` panel from the rendered heading elements.
+* Add independently scrollable left and right panels.
+* Do not change normal Markdown editor behavior.
+* Keep the documentation navigation content simple in this first block; the real project tree and cross-document navigation follow in the next block.
 
 ## Later Preview/layout work
 
 Eventually implement:
 
-1. Reliable detection of the native Markdown Preview.
-2. Opening/reusing a Sydoc layout only for Preview.
-3. Native Markdown Preview in the center.
-4. Documentation navigation on the left.
-5. `Nesta página` on the right.
-6. Update both side panels when the Preview changes to another Sydoc Markdown.
-7. Restore the previous editor layout when leaving the Sydoc Preview.
-8. Handle multiple Sydoc projects correctly.
-9. Verify exact VS Code editor-group/layout APIs before committing to the final implementation.
+1. Build and cache the real documentation navigation HTML for each Sydoc project.
+2. Insert the current project's navigation in the left Preview panel.
+3. Generate correct relative Markdown links for nested documents.
+4. Rebuild the left navigation and right heading tree when the Preview changes to another Sydoc Markdown.
+5. Handle multiple and nested Sydoc projects correctly.
+6. Refresh the cached navigation when project files change.
+7. Verify compatibility with task-list, Mermaid, and LaTeX Markdown extensions.
 
 Do not replace the native Markdown renderer with a custom Markdown Webview.
 
@@ -315,9 +329,6 @@ Do not replace the native Markdown renderer with a custom Markdown Webview.
 
 * `Sydoc: Open Documentation`
 * `Sydoc: Initialize Documentation`
-* `Sydoc: Create Document`
-
-`Create Document` is currently contributed but not yet implemented.
 
 ## Development notes
 
