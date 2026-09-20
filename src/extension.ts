@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { findSydocProject } from './discovery';
+import { findSydocProjects } from './discovery';
 
 export function activate(context: vscode.ExtensionContext) {
   const openDocumentation = vscode.commands.registerCommand(
@@ -14,17 +14,10 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const project = await findSydocProject(workspace.uri);
-
-      if (!project) {
-        vscode.window.showInformationMessage(
-          'Sydoc: No Sydoc project found.',
-        );
-        return;
-      }
+      const projects = await findSydocProjects(workspace.uri);
 
       vscode.window.showInformationMessage(
-        'Sydoc: Sydoc project found.',
+        `Sydoc: Found ${projects.length} project(s).`,
       );
     },
   );

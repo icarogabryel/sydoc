@@ -21,3 +21,30 @@ export async function findSydocProject(
     return undefined;
   }
 }
+
+export async function findSydocProjects(
+  directory: vscode.Uri,
+): Promise<SydocProject[]> {
+  const projects: SydocProject[] = [];
+
+  const project = await findSydocProject(directory);
+
+  if (project) {
+    projects.push(project);
+  }
+
+  const entries = await vscode.workspace.fs.readDirectory(directory);
+
+  for (const [name, type] of entries) {
+    if (type !== vscode.FileType.Directory) {
+      continue;
+    }
+
+    const childDirectory = vscode.Uri.joinPath(directory, name);
+    const childProjects = await findSydocProjects(childDirectory);
+
+    projects.push(...childProjects);
+  }
+
+  return projects;
+}
