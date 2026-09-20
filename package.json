@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "sydoc.helloWorld",
-        "title": "Hello World"
+        "command": "sydoc.openDocumentation",
+        "title": "Sydoc: Open Documentation"
       }
     ]
   },

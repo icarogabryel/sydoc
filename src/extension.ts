@@ -1,13 +1,16 @@
 import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "sydoc" is now active!');
+  const openDocumentation = vscode.commands.registerCommand(
+    'sydoc.openDocumentation',
+    () => {
+      vscode.window.showInformationMessage(
+        'Sydoc: Documentation'
+      );
+    }
+  );
 
-  const disposable = vscode.commands.registerCommand('sydoc.helloWorld', () => {
-    vscode.window.showInformationMessage('Hello World from Sydoc!');
-  });
-
-  context.subscriptions.push(disposable);
+  context.subscriptions.push(openDocumentation);
 }
 
 export function deactivate() { }
