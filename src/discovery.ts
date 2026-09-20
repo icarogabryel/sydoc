@@ -40,6 +40,10 @@ export async function findSydocProjects(
       continue;
     }
 
+    if (config.ignoredDirectories.has(name)) {
+      continue;
+    }
+
     const childDirectory = vscode.Uri.joinPath(directory, name);
     const childProjects = await findSydocProjects(childDirectory);
 
