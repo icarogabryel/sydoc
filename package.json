@@ -39,6 +39,10 @@
         {
           "id": "sydoc.navigation",
           "name": "Documentation"
+        },
+        {
+          "id": "sydoc.outline",
+          "name": "Nesta página"
         }
       ]
     }

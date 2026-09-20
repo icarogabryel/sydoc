@@ -5,6 +5,8 @@ import {
 } from './discovery';
 import { SydocProject } from './project';
 import { SydocNavigationProvider } from './navigation';
+import { SydocOutlineProvider } from './outline';
+import { findHeadings } from './headings';
 
 let activeProject: SydocProject | undefined;
 
@@ -84,6 +86,19 @@ export function activate(context: vscode.ExtensionContext) {
         );
 
         navigation.setProject(activeProject);
+
+        if (
+          editor &&
+          editor.document.languageId === 'markdown'
+        ) {
+          const headings = await findHeadings(
+            editor.document,
+          );
+
+          outline.setHeadings(headings);
+        } else {
+          outline.setHeadings([]);
+        }
       },
     );
 
@@ -96,11 +111,20 @@ export function activate(context: vscode.ExtensionContext) {
       navigation,
     );
 
+  const outline = new SydocOutlineProvider();
+
+  const outlineProvider =
+    vscode.window.registerTreeDataProvider(
+      'sydoc.outline',
+      outline,
+    );
+
   context.subscriptions.push(
     openDocumentation,
     initializeDocumentation,
     activeEditorChanged,
-    navigationProvider
+    navigationProvider,
+    outlineProvider,
   );
 }
 
