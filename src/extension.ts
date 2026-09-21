@@ -1,23 +1,28 @@
 import * as vscode from 'vscode';
-import {
-  findSydocProjectForFile,
-  findSydocProjects,
-} from './projects/discovery';
+import { findSydocProjects } from './projects/discovery';
 import { SydocProject } from './projects/project';
-import { SydocNavigationProvider } from './views/navigation';
-import { SydocOutlineProvider } from './views/outline';
-import { findHeadings } from './markdown/headings';
+import { configureMarkdownIt } from './preview/markdownIt';
+import { buildPreviewNavigation } from './preview/navigation';
+import { buildNavigationModel } from './preview/navigationModel';
 
-let activeProject: SydocProject | undefined;
+const previewProjects = new Map<string, SydocProject>();
+const previewNavigations = new Map<string, string>();
+const previewDocumentUris = new Map<string, vscode.Uri>();
+const navigationModels = new Map<string, Awaited<ReturnType<typeof buildNavigationModel>>>();
 
-async function getSydocProject(
-  document: vscode.TextDocument,
-) {
-  if (document.languageId !== 'markdown') {
+function getUriKey(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') {
     return undefined;
   }
 
-  return findSydocProjectForFile(document.uri);
+  const uri = value as vscode.Uri;
+  return typeof uri.toString === 'function'
+    ? uri.toString()
+    : undefined;
+}
+
+function getProjectKey(project: SydocProject): string {
+  return project.root.toString();
 }
 
 export function activate(
@@ -25,31 +30,6 @@ export function activate(
 ): {
   extendMarkdownIt(markdownIt: unknown): unknown;
 } {
-  const revealHeading = vscode.commands.registerCommand(
-    'sydoc.revealHeading',
-    (line: number, documentUri?: vscode.Uri) => {
-      const editor = documentUri
-        ? vscode.window.visibleTextEditors.find(
-          (visibleEditor) => visibleEditor.document.uri.toString()
-            === documentUri.toString(),
-        )
-        : vscode.window.activeTextEditor;
-
-      if (!editor || editor.document.languageId !== 'markdown') {
-        return;
-      }
-
-      const position = new vscode.Position(line, 0);
-      const range = new vscode.Range(position, position);
-
-      editor.selection = new vscode.Selection(position, position);
-      editor.revealRange(
-        range,
-        vscode.TextEditorRevealType.AtTop,
-      );
-    },
-  );
-
   const openDocumentation = vscode.commands.registerCommand(
     'sydoc.openDocumentation',
     async () => {
@@ -100,64 +80,97 @@ export function activate(
     },
   );
 
-  const activeEditorChanged =
-    vscode.window.onDidChangeActiveTextEditor(
-      async (editor) => {
-        if (!editor) {
-          return;
-        }
+  void (async () => {
+    const workspaces = vscode.workspace.workspaceFolders ?? [];
 
-        activeProject = undefined;
-        activeProject = await getSydocProject(
-          editor.document,
+    for (const workspace of workspaces) {
+      const projects = await findSydocProjects(workspace.uri);
+
+      for (const project of projects) {
+        const projectKey = getProjectKey(project);
+        const model = await buildNavigationModel(project);
+        navigationModels.set(projectKey, model);
+
+        const documents = await vscode.workspace.findFiles(
+          new vscode.RelativePattern(project.root, '**/*.md'),
         );
 
-        navigation.setProject(activeProject);
-
-        if (
-          editor &&
-          editor.document.languageId === 'markdown'
-        ) {
-          const headings = await findHeadings(
-            editor.document,
+        for (const documentUri of documents) {
+          const documentKey = documentUri.toString();
+          previewProjects.set(documentKey, project);
+          previewDocumentUris.set(documentKey, documentUri);
+          previewNavigations.set(
+            documentKey,
+            buildPreviewNavigation(model, documentUri),
           );
-
-          outline.setHeadings(headings, editor.document.uri);
-        } else {
-          outline.setHeadings([]);
         }
-      },
-    );
 
-  const navigation =
-    new SydocNavigationProvider();
+        const watcher = vscode.workspace.createFileSystemWatcher(
+          new vscode.RelativePattern(workspace, '**/*'),
+        );
+        const refresh = (uri: vscode.Uri) => {
+          const projectPath = project.root.path.endsWith('/')
+            ? project.root.path
+            : `${project.root.path}/`;
 
-  const navigationProvider =
-    vscode.window.registerTreeDataProvider(
-      'sydoc.navigation',
-      navigation,
-    );
+          if (
+            uri.path !== project.root.path
+            && !uri.path.startsWith(projectPath)
+          ) {
+            return;
+          }
 
-  const outline = new SydocOutlineProvider();
+          void (async () => {
+            const updatedModel = await buildNavigationModel(project);
+            navigationModels.set(projectKey, updatedModel);
 
-  const outlineProvider =
-    vscode.window.registerTreeDataProvider(
-      'sydoc.outline',
-      outline,
-    );
+            for (const [documentKey, documentProject] of previewProjects) {
+              if (getProjectKey(documentProject) !== projectKey) {
+                continue;
+              }
+
+              const documentUri = previewDocumentUris.get(documentKey);
+              if (documentUri) {
+                previewNavigations.set(
+                  documentKey,
+                  buildPreviewNavigation(updatedModel, documentUri),
+                );
+              }
+            }
+
+            await vscode.commands.executeCommand('markdown.preview.refresh');
+          })();
+        };
+
+        watcher.onDidCreate(refresh);
+        watcher.onDidChange(refresh);
+        watcher.onDidDelete(refresh);
+        context.subscriptions.push(watcher);
+      }
+    }
+  })();
 
   context.subscriptions.push(
-    revealHeading,
     openDocumentation,
     initializeDocumentation,
-    activeEditorChanged,
-    navigationProvider,
-    outlineProvider,
   );
 
   return {
     extendMarkdownIt(markdownIt: unknown): unknown {
-      return markdownIt;
+      return configureMarkdownIt(
+        markdownIt,
+        (documentUri) => {
+          const documentKey = getUriKey(documentUri);
+          return documentKey !== undefined
+            && previewProjects.has(documentKey);
+        },
+        (documentUri) => {
+          const documentKey = getUriKey(documentUri);
+          return documentKey
+            ? previewNavigations.get(documentKey) ?? ''
+            : '';
+        },
+      );
     },
   };
 }
