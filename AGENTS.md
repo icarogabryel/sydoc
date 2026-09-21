@@ -110,18 +110,7 @@ The extension currently activates for:
 
 The exact activation behavior for the Preview still needs to be verified during the eventual integration.
 
-The extension also has a Sydoc Activity Bar container and two views:
-
-* `sydoc.navigation` — Documentation
-* `sydoc.outline` — On This Page
-
-These Tree Views currently support the editable Markdown workflow. They are not the final Sydoc Preview layout; the final navigation is rendered inside the native Preview.
-
-The container uses:
-
-```text
-resources/sydoc.svg
-```
+The extension does not contribute Activity Bar containers or Tree Views. Sydoc's user interface is rendered exclusively inside the native Markdown Preview.
 
 ## Current source structure
 
@@ -130,14 +119,12 @@ src/
 ├── core/
 │   └── config.ts
 ├── extension.ts
-├── markdown/
-│   └── headings.ts
 ├── projects/
 │   ├── discovery.ts
 │   └── project.ts
-└── views/
-    ├── navigation.ts
-    └── outline.ts
+├── preview/
+│   ├── markdownIt.ts
+│   └── navigation.ts
 
 media/
 ├── sydoc-preview.css
@@ -192,98 +179,6 @@ Behavior:
 
 This has already been tested successfully with multiple projects and ignored directories.
 
-## views/navigation.ts
-
-`navigation.ts` contains `SydocNavigationProvider`.
-
-It is a `vscode.TreeDataProvider` that:
-
-* receives the currently active Sydoc project through `setProject()`;
-* refreshes the Tree View when the project changes;
-* recursively exposes directories;
-* exposes `.md` files;
-* ignores hidden entries;
-* sorts directories before files;
-* opens Markdown files using `vscode.open` when clicked.
-
-The current behavior is intentionally based on real files and directories rather than a separate documentation database.
-
-The Documentation tree should represent the Sydoc project to which the currently active Markdown document belongs.
-
-## markdown/headings.ts
-
-`headings.ts` defines:
-
-```ts
-export interface SydocHeading {
-  text: string;
-  level: number;
-  line: number;
-  children: SydocHeading[];
-}
-```
-
-`findHeadings(document)` parses ATX Markdown headings (`#` through `######`) and builds a hierarchical tree.
-
-Example:
-
-```markdown
-# Introduction
-## Installation
-## Configuration
-### Database
-## Usage
-# API
-## Authentication
-```
-
-becomes:
-
-```text
-Introduction
-├── Installation
-├── Configuration
-│   └── Database
-└── Usage
-
-API
-└── Authentication
-```
-
-`views/outline.ts` contains `SydocOutlineProvider`, another `TreeDataProvider`.
-
-It:
-
-* receives headings through `setHeadings()`;
-* refreshes when headings change;
-* displays the heading hierarchy;
-* expands headings that have children;
-* currently shows the heading level as a description such as `H1`, `H2`, etc.
-
-The Tree View is currently registered as `sydoc.outline` and named `On This Page`.
-
-## Current active-document flow
-
-`extension.ts` currently determines the Sydoc project for the active Markdown editor and updates both providers.
-
-Conceptually:
-
-```text
-active editor
-    ↓
-getSydocProject(document)
-    ↓
-activeProject
-    ├── navigation.setProject(...)
-    └── findHeadings(document)
-          ↓
-        outline.setHeadings(...)
-```
-
-This currently works for the normal editable Markdown editor.
-
-Important: this mechanism must NOT be treated as the final Preview detection mechanism. The native Markdown Preview does not behave like a normal `TextEditor` in `onDidChangeActiveTextEditor`.
-
 ## Current state of the UI
 
 The following already works:
@@ -293,27 +188,18 @@ The following already works:
 3. Multiple Sydoc projects work.
 4. Ignored directories work.
 5. Project initialization creates an empty `sydoc.yml`.
-6. Sydoc Activity Bar container works.
-7. Documentation Tree View works.
-8. Documentation tree follows the current project's Markdown files.
-9. `On This Page` Tree View works.
-10. Markdown headings are parsed hierarchically.
-11. `On This Page` displays the heading hierarchy.
-12. Clicking an `On This Page` item reveals the matching line in a visible Markdown source editor.
-13. The active Sydoc project is preserved while the native Markdown Preview has focus.
-14. The extension contributes a markdown-it plugin, Preview stylesheet, and Preview script without changing Preview content yet.
+6. The active Sydoc project is preserved while the native Markdown Preview has focus.
+7. The extension contributes a markdown-it plugin, Preview stylesheet, and Preview script.
+8. A Sydoc Preview creates three columns and builds Documentation and On This Page from rendered content.
 
 ## Immediate next development task
 
-Create a Preview-only proof of concept for the three-column Sydoc layout.
+Continue the Preview-only implementation of the three-column Sydoc layout.
 
 Scope:
 
-* Preserve the final Markdown DOM and place it in the center column.
-* Build the right `On This Page` panel from the rendered heading elements.
-* Add independently scrollable left and right panels.
 * Do not change normal Markdown editor behavior.
-* Keep the documentation navigation content simple in this first block; the real project tree and cross-document navigation follow in the next block.
+* Keep all Sydoc UI inside the native Markdown Preview.
 
 ## Later Preview/layout work
 
