@@ -25,27 +25,6 @@
         "title": "Sydoc: Initialize Documentation"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "sydoc",
-          "title": "Sydoc",
-          "icon": "resources/sydoc.svg"
-        }
-      ]
-    },
-    "views": {
-      "sydoc": [
-        {
-          "id": "sydoc.navigation",
-          "name": "Documentation"
-        },
-        {
-          "id": "sydoc.outline",
-          "name": "On This Page"
-        }
-      ]
-    },
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
       "./media/sydoc-preview.css"
