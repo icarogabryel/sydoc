@@ -62,14 +62,18 @@
 
 .sydoc-preview__outline-list {
   margin: 0;
-  padding-left: 0;
-  list-style: none;
+  padding-left: 1rem;
+  list-style-type: disc;
 }
 
 .sydoc-preview__outline-list ul {
   margin: 0;
   padding-left: 1rem;
-  list-style: none;
+  list-style-type: circle;
+}
+
+.sydoc-preview__outline-list ul ul {
+  list-style-type: square;
 }
 
 .sydoc-preview__outline-list li {
