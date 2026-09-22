@@ -1,4 +1,4 @@
-# Sydoc
+# Simple YAML Documentation - Sydoc
 
 Sydoc is a project model for organizing internal documentation with Markdown.
 It is inspired by tools such as MkDocs: a documentation project has a known
