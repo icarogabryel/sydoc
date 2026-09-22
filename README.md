@@ -1,23 +1,31 @@
 # Sydoc
 
-Sydoc is a VS Code extension for navigating internal Markdown documentation.
-It organizes documentation projects without replacing the native VS Code
-Markdown renderer.
+Sydoc is a project model for organizing internal documentation with Markdown.
+It is inspired by tools such as MkDocs: a documentation project has a known
+root, a marker/configuration file, and a predictable collection of Markdown
+documents and directories.
+
+The current implementation is this VS Code extension that provides navigation and
+preview features for Sydoc projects. The project model is independent from the
+editor: the documentation itself remains ordinary Markdown files that can be
+read and edited with any suitable tool.
 
 ## Features
 
-- Discovers documentation projects recursively from a `sydoc.yml` marker file.
-- Supports multiple and nested Sydoc projects in the same workspace.
-- Shows a Documentation navigation panel inside the native Markdown Preview.
-- Shows an `On This Page` outline built from the current document headings.
+- Defines documentation projects through a `sydoc.yml` marker file.
+- Supports multiple and nested projects in the same workspace.
+- Organizes Markdown documents into a navigable documentation tree.
+- Provides a Documentation navigation panel in the current VS Code adapter.
+- Provides an `On This Page` outline built from the current document headings.
 - Keeps the left and right navigation panels independently scrollable.
 - Rebuilds navigation when Markdown files or directories change.
-- Keeps normal Markdown editing unchanged.
+- Preserves normal Markdown files and editing workflows.
 
 ## Requirements
 
-- Visual Studio Code `1.138.0` or later.
-- A workspace containing one or more Sydoc projects.
+- Markdown-compatible tooling.
+- A directory containing one or more Sydoc projects.
+- Visual Studio Code `1.138.0` or later for the current extension integration.
 
 ## Getting Started
 
@@ -34,9 +42,9 @@ workspace/
 │       └── architecture/
 │           └── overview.md
 └── frontend/
-		└── documentation/
-				├── sydoc.yml
-				└── setup.md
+    └── documentation/
+        ├── sydoc.yml
+        └── setup.md
 ```
 
 The current version only uses the file as a project marker. Its YAML schema
@@ -50,15 +58,16 @@ Sydoc: Initialize Documentation
 
 Choose the directory that should become the project root.
 
-### Open the documentation preview
+### Open the documentation in VS Code
 
-Open a Markdown file belonging to a Sydoc project and open its native Markdown
-Preview with `Markdown: Open Preview` or the preview button in the editor.
+The current adapter is available as a VS Code extension. Open a Markdown file
+belonging to a Sydoc project and open its native Markdown Preview with
+`Markdown: Open Preview` or the preview button in the editor.
 
 The preview displays:
 
 - **Documentation**: the Markdown files and directories in the current
-	project.
+    project.
 - **Markdown Preview**: the normal VS Code-rendered document.
 - **On This Page**: the headings from the current document.
 
@@ -111,7 +120,27 @@ Useful scripts:
 
 The project uses Husky to run `npm run lint` before commits.
 
-## Architecture
+## Project Model
+
+A Sydoc project is intentionally simple:
+
+```text
+project-root/
+├── sydoc.yml
+├── introduction.md
+├── installation.md
+└── guides/
+    ├── first-steps.md
+    └── configuration.md
+```
+
+The `sydoc.yml` file identifies the project root. Its configuration schema is
+not defined yet, so an empty marker file is valid in the current version.
+Markdown files are the source of truth for the documentation. Sydoc does not
+move them into a special `.sydoc/` directory or replace them with a proprietary
+format.
+
+## Current VS Code Adapter
 
 ```text
 src/
@@ -126,20 +155,21 @@ media/
 └── sydoc-preview.js
 ```
 
-Sydoc extends the native Markdown Preview through VS Code's Markdown extension
-points. It does not create a replacement Markdown renderer or a separate
-editor view.
+The current adapter extends the native Markdown Preview through VS Code's
+Markdown extension points. It does not create a replacement Markdown renderer
+or a separate editor view. Other adapters or a standalone documentation build
+tool can use the same project model in the future.
 
 ## Current Limitations
 
 - `sydoc.yml` is currently only a marker; its configuration schema has not
-	been defined.
+    been defined.
 - The documentation navigation is currently generated from Markdown files and
-	directories rather than from a configurable ordering file.
+    directories rather than from a configurable ordering file.
 - Preview compatibility with third-party Markdown features such as task
-	lists, Mermaid, and LaTeX still needs dedicated verification.
+    lists, Mermaid, and LaTeX still needs dedicated verification.
 - Accessibility and keyboard navigation for the Preview side panels still
-	need dedicated validation.
+    need dedicated validation.
 
 ## License
 
