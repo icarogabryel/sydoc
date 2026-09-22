@@ -29,6 +29,39 @@
     return item;
   }
 
+  function createOutlineTree(headings) {
+    const root = document.createElement('ul');
+    root.className = 'sydoc-preview__outline-list';
+    const lists = [{ level: 0, element: root, item: null }];
+
+    for (const heading of headings) {
+      const level = Number(heading.tagName.slice(1));
+
+      while (lists.length > 1 && lists[lists.length - 1].level >= level) {
+        lists.pop();
+      }
+
+      if (level > lists[lists.length - 1].level) {
+        const parent = lists[lists.length - 1];
+
+        if (parent.item) {
+          const nestedList = document.createElement('ul');
+          parent.item.append(nestedList);
+          lists.push({ level, element: nestedList, item: null });
+        } else {
+          lists.push({ level, element: parent.element, item: null });
+        }
+      }
+
+      const currentList = lists[lists.length - 1].element;
+      const item = createOutlineItem(heading);
+      currentList.append(item);
+      lists[lists.length - 1].item = item;
+    }
+
+    return root;
+  }
+
   function setHeadingIds(headings) {
     const usedIds = new Set();
 
@@ -85,7 +118,7 @@
 
     let list = outline.querySelector('.sydoc-preview__outline-list');
     if (!list) {
-      list = document.createElement('ol');
+      list = document.createElement('ul');
       list.className = 'sydoc-preview__outline-list';
       outline.append(list);
     }
@@ -101,9 +134,7 @@
       return;
     }
 
-    list.replaceChildren(
-      ...headings.map(createOutlineItem),
-    );
+    list.replaceWith(createOutlineTree(headings));
   }
 
   function renderLayouts() {
