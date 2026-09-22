@@ -1,9 +1,21 @@
-# Simple YAML Documentation - Sydoc
+<p align="center">
+    <img src="assets/logo.png" alt="Sydoc logo" width="180">
+</p>
 
-Sydoc is a project model for organizing internal documentation with Markdown.
-It is inspired by tools such as MkDocs: a documentation project has a known
-root, a marker/configuration file, and a predictable collection of Markdown
-documents and directories.
+<h1 align="center">Simple YAML Documentation</h1>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/license-MIT-2ea44f" alt="MIT license">
+</p>
+
+Sydoc is a simple, IDE-native documentation system for software projects.
+Sydoc organizes Markdown documentation into a structured, navigable knowledge base using a `sydoc.yml` configuration file — bringing your project's internal documentation closer the experience of a public documentation website in your favorite IDE.
+
+Example of documentation with Sydoc visualization in VS Code:
+
+<p align="center">
+    <img src="assets/preview.png" alt="Sydoc documentation preview" width="75%">
+</p>
 
 The current implementation is this VS Code extension that provides navigation and
 preview features for Sydoc projects. The project model is independent from the
