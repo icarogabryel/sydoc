@@ -268,5 +268,8 @@ When making changes:
 [ ] Verify compatibility with task-list, Mermaid, and LaTeX Markdown extensions.
 [ ] Validate keyboard navigation, focus order, and accessible labels for Preview navigation.
 [ ] Document the required Preview link behavior and supported VS Code versions.
+[ ] Create GitHub Actions workflows for CI, packaging, and releases.
+[ ] Create a landing page for Sydoc.
+[ ] Create the broader Sydoc project documentation.
 [ ] Implement the Create Document command or remove its planned documentation.
 [ ] Package and manually test the extension in a clean VS Code Extension Development Host.
