@@ -105,6 +105,34 @@ suite('Extension Test Suite', () => {
     assert.doesNotMatch(navigation, /empty/);
   });
 
+  test('builds navigation from the MkDocs-style nav configuration', async () => {
+    const root = await createTemporaryRoot();
+    const guides = await createDirectory(root, 'guides');
+    const home = vscode.Uri.joinPath(root, 'index.md');
+    const introduction = vscode.Uri.joinPath(guides, 'intro.md');
+    const configFile = vscode.Uri.joinPath(root, 'sydoc.yml');
+
+    await createFile(home);
+    await createFile(introduction);
+    await vscode.workspace.fs.writeFile(
+      configFile,
+      Buffer.from([
+        'nav:',
+        '  - Home: index.md',
+        '  - Guides:',
+        '      - Introduction: guides/intro.md',
+      ].join('\n')),
+    );
+
+    const model = await buildNavigationModel({ root, configFile });
+    const navigation = buildPreviewNavigation(model, home);
+
+    assert.match(navigation, />Home<\/a>/);
+    assert.match(navigation, />Guides<\/span>/);
+    assert.match(navigation, />Introduction<\/a>/);
+    assert.doesNotMatch(navigation, />index\.md<\/a>/);
+  });
+
   test('wraps active Markdown previews and leaves inactive previews unchanged', () => {
     const documentUri = vscode.Uri.parse('file:///workspace/docs/guide.md');
     const markdownIt = {

@@ -147,7 +147,20 @@ project-root/
 ```
 
 The `sydoc.yml` file identifies the project root. Its configuration schema is
-not defined yet, so an empty marker file is valid in the current version.
+optional. An empty marker file is valid and makes Sydoc discover the Markdown
+tree automatically. To define a custom navigation order, use the MkDocs-style
+`nav` field:
+
+```yaml
+nav:
+    - Home: index.md
+    - Guides:
+            - Introduction: guides/intro.md
+            - Configuration: guides/configuration.md
+```
+
+Configured titles and nesting are reflected in the Preview. Entries that point
+to missing or non-Markdown files are ignored.
 Markdown files are the source of truth for the documentation. Sydoc does not
 move them into a special `.sydoc/` directory or replace them with a proprietary
 format.
@@ -176,8 +189,8 @@ tool can use the same project model in the future.
 
 - `sydoc.yml` is currently only a marker; its configuration schema has not
     been defined.
-- The documentation navigation is currently generated from Markdown files and
-    directories rather than from a configurable ordering file.
+- The documentation navigation falls back to Markdown files and directories
+    when `sydoc.yml` does not define a `nav` field.
 - Preview compatibility with third-party Markdown features such as task
     lists, Mermaid, and LaTeX still needs dedicated verification.
 - Accessibility and keyboard navigation for the Preview side panels still
