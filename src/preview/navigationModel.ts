@@ -37,19 +37,31 @@ async function buildDirectoryModel(
       return nameA.localeCompare(nameB);
     });
 
-  return Promise.all(
+  const nodes = await Promise.all(
     visibleEntries.map(async ([name, type]) => {
       const uri = vscode.Uri.joinPath(directory, name);
+      const children = type === vscode.FileType.Directory
+        ? await buildDirectoryModel(uri)
+        : [];
+
+      if (
+        type === vscode.FileType.Directory
+        && children.length === 0
+      ) {
+        return undefined;
+      }
 
       return {
         name,
         type,
         uri,
-        children: type === vscode.FileType.Directory
-          ? await buildDirectoryModel(uri)
-          : [],
+        children,
       };
     }),
+  );
+
+  return nodes.filter(
+    (node): node is NavigationNode => node !== undefined,
   );
 }
 

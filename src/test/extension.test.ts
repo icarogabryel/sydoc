@@ -82,6 +82,7 @@ suite('Extension Test Suite', () => {
   test('builds document-relative navigation links', async () => {
     const root = await createTemporaryRoot();
     const guides = await createDirectory(root, 'guides');
+    const empty = await createDirectory(root, 'empty');
     const currentDocument = vscode.Uri.joinPath(guides, 'current.md');
     const guide = vscode.Uri.joinPath(root, 'guide.md');
 
@@ -101,6 +102,7 @@ suite('Extension Test Suite', () => {
     );
     assert.match(navigation, /href="\.\.\/guide\.md"/);
     assert.match(navigation, /<ul>/);
+    assert.doesNotMatch(navigation, /empty/);
   });
 
   test('wraps active Markdown previews and leaves inactive previews unchanged', () => {
