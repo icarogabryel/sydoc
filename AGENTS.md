@@ -1,275 +1,128 @@
-# Sydoc — Development Context
+# Sydoc project guidelines
 
-## Project
+These instructions apply to all work in this repository. Keep them concise and
+current. For contributor setup and Git workflow, see
+[CONTRIBUTING.md](./CONTRIBUTING.md). For user-facing behavior, see
+[README.md](./README.md).
 
-Sydoc is a VS Code extension for internal documentation of software projects.
+## Project boundaries
 
-The documentation is based on normal Markdown files. The extension should organize and navigate existing Markdown documentation without replacing VS Code's native Markdown renderer.
+- Sydoc is a TypeScript VS Code extension for organizing Markdown
+  documentation.
+- A Sydoc project is identified by a `sydoc.yml` file. There is intentionally
+  no `.sydoc/` directory.
+- Multiple and nested Sydoc projects are supported.
+- The documentation source remains ordinary Markdown files.
+- Do not redesign the architecture or introduce a new UI surface without
+  discussing the change first.
 
-## Development style
+## Non-negotiable Preview behavior
 
-* Language: TypeScript.
-* VS Code extension API.
-* Use 2 spaces for indentation.
-* Every file must end with a newline.
-* Develop in small coherent blocks, then test the block.
-* Keep the implementation simple and native to VS Code where possible.
-* Do not redesign existing architecture without discussing it first.
+Sydoc extends the native VS Code Markdown Preview; it does not replace it.
 
-## Core project model
+- Do not create a custom Markdown renderer or a replacement Markdown webview.
+- Do not change normal Markdown editor behavior.
+- Keep the three-column layout inside the native Preview.
+- Use the native Markdown extension points:
+  `markdown.markdownItPlugins`, `markdown.previewStyles`, and
+  `markdown.previewScripts`.
+- Preserve the native `.markdown-body` root and rendered nodes. Do not
+  recreate, sanitize, or replace Markdown HTML.
+- Keep Preview scripts idempotent because VS Code can update Preview content
+  without recreating the page.
+- Keep the Documentation and `On This Page` panels independently scrollable.
+- Preserve native Markdown link behavior, including reuse of the current
+  Preview for links to other Markdown documents.
+- Do not resize or reorganize VS Code editor groups or the application window.
+- Preserve compatibility with task lists, Mermaid, LaTeX, and other Markdown
+  extensions.
 
-A Sydoc project is identified by a `sydoc.yml` file.
+## Project discovery rules
 
-There is intentionally no `.sydoc/` directory.
+- `sydoc.yml` is both the project marker and the configuration file.
+- Discovery is recursive with no fixed depth.
+- `findSydocProjectForFile` must resolve the nearest project when projects are
+  nested.
+- Ignore `.git`, `node_modules`, `dist`, `build`, and `out` during discovery
+  and navigation.
+- Navigation includes Markdown files and omits hidden directories, unsupported
+  files, and empty directories.
+- Preserve relative links for documents in nested directories.
+- Treat the `sydoc.yml` schema as intentionally limited to the behavior
+  already supported by the code. Do not invent configuration semantics.
 
-Example:
+## Architecture
 
-```text
-workspace/
-├── backend/
-│   └── docs/
-│       └── sydoc.yml
-├── frontend/
-│   └── documentation/
-│       └── sydoc.yml
-└── ...
+Keep responsibilities separated:
+
+- `src/core/`: shared configuration.
+- `src/projects/`: project types and discovery.
+- `src/preview/`: Markdown Preview integration and navigation models.
+- `src/test/`: VS Code extension tests.
+- `media/`: Preview CSS and JavaScript.
+
+Prefer existing helpers and models over duplicate logic. Keep the implementation
+simple, native to VS Code, and type-safe. Use two-space indentation, preserve
+the existing naming conventions, and end every file with a newline.
+
+## Required workflow
+
+Before editing:
+
+1. Read the relevant implementation, tests, and documentation.
+2. Check the working tree and do not overwrite unrelated user changes.
+3. Identify the smallest set of files that owns the behavior.
+
+While editing:
+
+- Make focused, surgical changes.
+- Update directly related documentation.
+- Add or update tests for behavior changes.
+- Remove temporary debugging output before finishing.
+- Surface errors explicitly; do not hide failures with broad catches or silent
+  fallbacks.
+
+After editing, run the smallest relevant checks. For TypeScript or extension
+changes, run:
+
+```bash
+npm run pretest
+npm test
 ```
 
-Rules:
+The `pretest` script compiles with strict TypeScript settings and runs ESLint.
+The test suite runs in a VS Code Extension Development Host. Report any
+environmental limitation separately from code failures.
 
-* `sydoc.yml` is the project marker/config file.
-* Multiple Sydoc projects can exist in the same workspace.
-* Nested Sydoc projects are currently allowed.
-* Discovery is recursive with no fixed depth.
-* Ignored directories:
+## Dependencies and generated files
 
-  * `.git`
-  * `node_modules`
-  * `dist`
-  * `build`
-  * `out`
-* The schema/content of `sydoc.yml` is intentionally not being designed yet.
+- Use `npm ci` for a clean checkout and keep `package-lock.json` in sync with
+  intentional dependency changes.
+- Do not edit `node_modules/`, `out/`, or `.vscode-test/` as source files.
+- Do not commit generated output, local VS Code test installations, secrets, or
+  user data.
+- Prefer existing project tooling over adding dependencies.
 
-## Important UX decision
+## Git and review conventions
 
-Sydoc must use the **native VS Code Markdown Preview**.
+- Use Conventional Commits, for example:
+  `feat(preview): add configured navigation titles`.
+- Keep commits focused and avoid unrelated formatting or refactors.
+- Update `CHANGELOG.md` for user-visible changes.
+- Pull Requests should explain the motivation, affected behavior, validation
+  performed, and any compatibility limitations.
+- Changes affecting Preview must be checked for both initial rendering and
+  navigation to another Markdown document.
+- Do not bypass Husky hooks with `--no-verify` unless there is a documented
+  temporary reason. Hooks are installed by the `prepare` script after
+  dependency installation and the pre-commit hook runs the linter.
 
-Do NOT create a custom Webview Markdown renderer.
+## Security and compatibility
 
-The desired final Preview layout is conceptually:
-
-```text
-┌──────────────────┬──────────────────────────────┬──────────────────┐
-│ Documentation    │                              │ On This Page     │
-│                  │       Native Markdown        │                  │
-│ docs/            │          Preview             │ H1               │
-│ ├─ file.md       │                              │ ├─ H2            │
-│ ├─ folder/       │                              │ └─ H2            │
-│ └─ ...           │                              │                  │
-└──────────────────┴──────────────────────────────┴──────────────────┘
-```
-
-Behavior:
-
-* Opening a Markdown in the normal editable text editor must remain normal VS Code behavior.
-* Sydoc's special layout should only be activated for the Markdown **Preview**, not merely because a `.md` file was opened.
-* The layout is rendered **inside the native Markdown Preview**, not as VS Code editor groups or external View containers.
-* Left side: prebuilt Sydoc documentation navigation for the current project.
-* Center: the normal native Markdown Preview content.
-* Right side: heading tree for the current page (`On This Page`).
-* Each side navigation has independent vertical scrolling.
-* When a link to another Markdown file is clicked, the native Preview should reuse itself for the new document. Sydoc must rebuild the layout and heading tree for that document.
-* Markdown links should rely on the default `markdown.preview.openMarkdownLinks: "inPreview"` behavior.
-* The whole VS Code window and editor-group layout must not be resized or reorganized.
-
-Implement the Preview layout with VS Code's native Markdown extension points:
-
-* `markdown.markdownItPlugins` injects the prebuilt documentation navigation or data needed to render it.
-* `markdown.previewStyles` provides the three-column layout and independent side-panel scrolling.
-* `markdown.previewScripts` reorganizes the final rendered DOM, builds `On This Page` from rendered headings, and updates the layout after Preview content changes.
-* Preserve the native `.markdown-body` root and move existing rendered nodes into the center column. Do not recreate, sanitize, or replace the Markdown HTML, so that extensions such as task lists, Mermaid, and LaTeX continue to work.
-* Preview scripts must be idempotent because VS Code updates Preview content as Markdown changes.
-
-VS Code does not expose the native Markdown renderer as a generic component that can be embedded in a custom Webview. Sydoc must therefore extend the native Preview in place and must not create a custom Markdown renderer.
-
-## Current package configuration
-
-The extension currently has these commands:
-
-* `sydoc.openDocumentation`
-* `sydoc.initializeDocumentation`
-
-The extension currently activates for:
-
-```json
-"activationEvents": [
-  "onLanguage:markdown",
-  "onWebviewPanel:markdown.preview"
-]
-```
-
-The exact activation behavior for the Preview still needs to be verified during the eventual integration.
-
-The extension does not contribute Activity Bar containers or Tree Views. Sydoc's user interface is rendered exclusively inside the native Markdown Preview.
-
-## Current source structure
-
-```text
-src/
-├── core/
-│   └── config.ts
-├── extension.ts
-├── projects/
-│   ├── discovery.ts
-│   └── project.ts
-├── preview/
-│   ├── markdownIt.ts
-│   └── navigation.ts
-
-media/
-├── sydoc-preview.css
-└── sydoc-preview.js
-```
-
-## projects/project.ts
-
-Defines:
-
-```ts
-export interface SydocProject {
-  root: vscode.Uri;
-  configFile: vscode.Uri;
-}
-```
-
-`root` is the directory containing `sydoc.yml`.
-
-`configFile` is the actual `sydoc.yml` URI.
-
-## core/config.ts
-
-Contains:
-
-```ts
-export const config = {
-  configFileName: 'sydoc.yml',
-  ignoredDirectories: new Set([
-    '.git',
-    'node_modules',
-    'dist',
-    'build',
-    'out',
-  ]),
-};
-```
-
-## projects/discovery.ts
-
-`discovery.ts` currently provides:
-
-* `findSydocProject(directory)`
-* `findSydocProjects(directory)`
-* `findSydocProjectForFile(file)`
-
-Behavior:
-
-* `findSydocProject()` checks whether the directory contains `sydoc.yml`.
-* `findSydocProjects()` recursively searches directories while respecting ignored directories.
-* `findSydocProjectForFile()` walks upward from a file's parent directory and returns the nearest Sydoc project.
-
-This has already been tested successfully with multiple projects and ignored directories.
-
-## Current state of the UI
-
-The following already works:
-
-1. Sydoc extension activates.
-2. `sydoc.yml` project discovery works.
-3. Multiple Sydoc projects work.
-4. Ignored directories work.
-5. Project initialization creates an empty `sydoc.yml`.
-6. The active Sydoc project is preserved while the native Markdown Preview has focus.
-7. The extension contributes a markdown-it plugin, Preview stylesheet, and Preview script.
-8. A Sydoc Preview creates three columns and builds Documentation and On This Page from rendered content.
-
-## Immediate next development task
-
-Continue the Preview-only implementation of the three-column Sydoc layout.
-
-Scope:
-
-* Do not change normal Markdown editor behavior.
-* Keep all Sydoc UI inside the native Markdown Preview.
-
-## Later Preview/layout work
-
-Eventually implement:
-
-1. Build and cache the real documentation navigation HTML for each Sydoc project.
-2. Insert the current project's navigation in the left Preview panel.
-3. Generate correct relative Markdown links for nested documents.
-4. Rebuild the left navigation and right heading tree when the Preview changes to another Sydoc Markdown.
-5. Handle multiple and nested Sydoc projects correctly.
-6. Refresh the cached navigation when project files change.
-7. Verify compatibility with task-list, Mermaid, and LaTeX Markdown extensions.
-
-Do not replace the native Markdown renderer with a custom Markdown Webview.
-
-## Commands already present
-
-* `Sydoc: Open Documentation`
-* `Sydoc: Initialize Documentation`
-
-## Development notes
-
-Temporary debugging messages used during development should be removed when no longer needed.
-
-When making changes:
-
-1. Keep the scope of each block clear.
-2. Prefer a few related changes followed by one compile/test cycle.
-3. Preserve the architecture decisions above.
-4. Do not modify the Markdown editing experience just to implement Sydoc Preview behavior.
-
-## TODO
-
-### Completed foundation
-
-[x] Discover Sydoc projects from `sydoc.yml`.
-[x] Support multiple, nested projects and ignored directories.
-[x] Preserve the active Sydoc project when the native Markdown Preview has focus.
-[x] Organize the source by responsibility: core, projects, and Preview.
-
-### Preview layout
-
-[x] Add the native Markdown contribution points for a markdown-it plugin, Preview styles, and Preview script.
-[x] Build a Preview-only three-column proof of concept.
-[x] Preserve `.markdown-body` and place the rendered Markdown nodes in the center column.
-[x] Add independently scrollable Documentation and On This Page side panels.
-[x] Build On This Page from the final rendered heading elements.
-[x] Make the Preview script idempotent across Preview content updates.
-[x] Ensure normal Markdown editing remains unchanged.
-
-### Documentation navigation in Preview
-
-[x] Extract project-document discovery into a reusable navigation model.
-[x] Generate escaped HTML for the Documentation navigation.
-[x] Cache navigation data for each Sydoc project before Markdown rendering.
-[x] Inject the current project's prebuilt navigation into the left Preview panel.
-[x] Generate links that work for nested Markdown documents.
-[x] Rebuild the layout when the native Preview changes to another Markdown document.
-[x] Refresh cached navigation when Markdown files or directories change.
-[x] Handle multiple and nested Sydoc projects in Preview navigation.
-
-### Quality and delivery
-
-[ ] Add unit tests for discovery and Preview navigation models.
-[ ] Add Preview-focused integration tests where VS Code test APIs permit them.
-[ ] Verify compatibility with task-list, Mermaid, and LaTeX Markdown extensions.
-[ ] Validate keyboard navigation, focus order, and accessible labels for Preview navigation.
-[ ] Document the required Preview link behavior and supported VS Code versions.
-[ ] Create GitHub Actions workflows for CI, packaging, and releases.
-[ ] Create a landing page for Sydoc.
-[ ] Create the broader Sydoc project documentation.
-[ ] Implement the Create Document command or remove its planned documentation.
-[ ] Package and manually test the extension in a clean VS Code Extension Development Host.
+- Treat workspace files, YAML content, Markdown content, and generated HTML as
+  untrusted input.
+- Escape generated HTML and validate file/path handling using existing project
+  patterns.
+- Do not commit credentials or tokens.
+- Preserve the VS Code engine range declared in `package.json` unless the
+  support policy is intentionally changed and documented.
