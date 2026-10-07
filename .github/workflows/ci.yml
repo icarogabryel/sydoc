@@ -41,5 +41,10 @@ jobs:
       - name: Compile and lint
         run: npm run pretest
 
-      - name: Run extension tests
+      - name: Run extension tests on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm test
+
+      - name: Run extension tests on Windows
+        if: runner.os == 'Windows'
         run: npm test
